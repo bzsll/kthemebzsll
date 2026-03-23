@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💭 테마 제작 메이커 (iOS)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Pretendard',sans-serif;background:#0f0f14;color:#f0f0f0;min-height:100vh}
+.hdr{background:linear-gradient(90deg,#1c1900,#2a2600,#1c1900);border-bottom:1px solid #3a3600;padding:14px 20px;display:flex;align-items:center;position:sticky;top:0;z-index:100}
+.hdr-title{font-weight:800;font-size:18px;color:#FEE500;flex:1}
+.hdr-btn{background:#FEE500;color:#1a1600;border:none;border-radius:10px;padding:9px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.main{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 60px)}
+.panel{background:#18181f;border-right:1px solid #2e2e3e;overflow-y:auto}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-thumb{background:#2e2e3e}
+.sec{border-bottom:1px solid #2e2e3e}
+.sec-hd{padding:11px 15px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.sec-hd:hover{background:rgba(255,255,255,.02)}
+.sec-hd .t{font-size:12px;font-weight:700;color:#ddd;flex:1}
+.sec-hd .v{font-size:10px;color:#555;transition:transform .2s}
+.sec.open .sec-hd .v{transform:rotate(180deg)}
+.sec-body{display:none;padding:4px 15px 12px}
+.sec.open .sec-body{display:block}
+.row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.row:last-child{border:none}
+.lbl{font-size:11px;color:#bbb;flex:1;line-height:1.35}
+.lbl small{display:block;color:#555;font-size:10px;margin-top:1px}
+.swatch{width:30px;height:30px;border-radius:8px;border:2px solid #2e2e3e;overflow:hidden;cursor:pointer;flex-shrink:0;position:relative}
+.swatch input[type=color]{position:absolute;top:-4px;left:-4px;width:calc(100% + 8px);height:calc(100% + 8px);border:none;cursor:pointer;padding:0}
+.mlbl{font-size:10px;color:#555;margin-top:8px;margin-bottom:2px;display:block}
+.minput{width:100%;background:#22222c;border:1.5px solid #2e2e3e;border-radius:8px;padding:7px 10px;color:#f0f0f0;font-family:inherit;font-size:12px;margin-bottom:5px}
+.minput:focus{outline:none;border-color:#FEE500}
+.minput::placeholder{color:#555}
+.irow{padding:5px 0 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.irow:last-child{border:none}
+.ilbl{font-size:11px;color:#bbb;margin-bottom:4px}
+.ilbl small{display:block;color:#555;font-size:10px;margin-top:1px}
+.upbtn{display:flex;align-items:center;gap:6px;background:#22222c;border:1.5px dashed #2e2e3e;border-radius:8px;padding:7px 10px;font-size:11px;color:#555;cursor:pointer;flex:1;font-family:inherit;transition:all .15s}
+.upbtn:hover{border-color:#FEE500;color:#FEE500}
+.upbtn.has{border-color:#00c897;color:#00c897}
+.upbtn input{display:none}
+.thumb{display:none;width:100%;height:40px;object-fit:cover;border-radius:6px;margin-top:4px;border:1px solid #2e2e3e}
+.thumb.show{display:none}
+.delbtn{display:none;background:none;border:none;color:#ff6b6b;font-size:10px;cursor:pointer;font-family:inherit;padding:2px 0}
+.delbtn.show{display:block}
+.preview{display:flex;flex-direction:column;align-items:center;padding:20px;gap:12px;overflow-y:auto;background:radial-gradient(ellipse at 40% 10%,#1e1c00,#0f0f14)}
+.ptabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.ptab{padding:5px 14px;border-radius:16px;border:1.5px solid #2e2e3e;background:none;color:#555;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.ptab.on{background:#FEE500;border-color:#FEE500;color:#1a1600}
+.phone{width:280px;background:#111;border-radius:38px;padding:11px;box-shadow:0 0 0 1.5px #333,0 30px 70px rgba(0,0,0,.8);position:relative;flex-shrink:0}
+.notch{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:80px;height:20px;background:#111;border-radius:0 0 12px 12px;z-index:10}
+.screen{border-radius:27px;overflow:hidden}
+.pscreen{display:none;flex-direction:column;height:560px}
+.pscreen.on{display:flex}
+.p-sbar{display:flex;justify-content:space-between;padding:24px 12px 3px;font-size:9px;font-weight:700;color:#fff}
+.p-chdr{display:flex;align-items:center;padding:5px 10px 8px;gap:7px;color:#fff}
+.p-chdr-back{font-size:14px}
+.p-chdr-title{flex:1;font-size:12px;font-weight:700}
+.p-chdr-icons{display:flex;gap:10px;font-size:14px}
+.p-chatbg{flex:1;position:relative;overflow:hidden}
+.p-chatbg-color{position:absolute;inset:0}
+.p-chatbg-img{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0}
+.p-chatbg-img.on{opacity:1}
+.p-msgs{position:relative;z-index:1;padding:8px 7px;display:flex;flex-direction:column;gap:6px;height:100%;overflow-y:auto}
+.p-date{align-self:center;font-size:9px;color:rgba(255,255,255,.9);background:rgba(0,0,0,.2);border-radius:8px;padding:2px 7px}
+.p-mrow{display:flex;gap:4px;align-items:flex-end}
+.p-mrow.me{justify-content:flex-end}
+.p-av{width:28px;height:28px;border-radius:8px;flex-shrink:0;align-self:flex-start;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:14px;background:#ddd;position:relative}
+.p-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.p-av img.on{display:block}
+.p-mcol{max-width:60%}
+.p-mname{font-size:9px;color:#555;font-weight:600;margin-bottom:2px}
+.p-bwrap{display:flex;align-items:flex-end;gap:3px}
+.p-mrow.me .p-bwrap{flex-direction:row-reverse}
+.p-bbl{padding:5px 9px;border-radius:12px;font-size:10px;line-height:1.45;position:relative;min-width:30px;background:#fff}
+.p-bbl.me{border-bottom-right-radius:2px}
+.p-bbl.them{border-bottom-left-radius:2px}
+.p-bbl-bg{display:none}
+.p-bbl-txt{position:relative;z-index:1}
+.p-mtime{font-size:8px;color:rgba(255,255,255,.7);white-space:nowrap}
+.p-inbar{display:flex;align-items:center;gap:5px;padding:6px 8px;border-top:1px solid rgba(0,0,0,.07)}
+.p-inbox{flex:1;border-radius:15px;padding:5px 10px;font-size:10px;color:#999;border:1px solid #ddd;background:#fff}
+.p-inico{font-size:15px;color:#aaa}
+.p-tbar{display:flex;padding:4px 0 6px;border-top:1px solid #e5e5e5;position:relative;overflow:hidden;background:#fff}
+.p-tbar-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0}
+.p-tbar-bg.on{opacity:1}
+.p-titem{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:7px;position:relative;z-index:1}
+.p-titem svg{width:17px;height:17px}
+.p-titem .cico{position:absolute;top:0;width:17px;height:17px;object-fit:contain;display:none}
+.p-titem .cico.on{display:block}
+.p-titem svg.hide{opacity:0}
+.p-fhdr{padding:24px 12px 5px;display:flex;justify-content:space-between;align-items:center;background:#fff}
+.p-fhdr-t{font-size:16px;font-weight:800}
+.p-fhdr-icons{display:flex;gap:10px;font-size:16px}
+.p-myprof{padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:4px solid #f0f0f0;background:#fff}
+.p-myav{width:40px;height:40px;border-radius:12px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;background:#ddd;position:relative}
+.p-myav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.p-myav img.on{display:block}
+.p-myname{font-size:12px;font-weight:700}
+.p-mystatus{font-size:10px;color:#aaa;margin-top:1px}
+.p-fsec{padding:6px 12px 2px;font-size:9px;color:#aaa;font-weight:600;background:#fff}
+.p-fitems{flex:1;background:#fff}
+.p-fitem{display:flex;align-items:center;padding:5px 12px;gap:8px}
+.p-fav{width:35px;height:35px;border-radius:10px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:17px;background:#ddd;position:relative}
+.p-fav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.p-fav img.on{display:block}
+.p-fname{font-size:11px;font-weight:500}
+.p-fstatus{font-size:9px;color:#aaa}
+.p-fill{flex:1;background:#fff}
+.p-lock{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;padding-top:60px;gap:12px;flex:1;background:#1a1a2e}
+.p-lock-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0}
+.p-lock-bg.on{opacity:1}
+.p-lock-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px}
+.p-lock-time{font-size:34px;font-weight:900;color:#fff}
+.p-lock-date{font-size:11px;color:rgba(255,255,255,.7)}
+.p-lock-dots{display:flex;gap:10px}
+.p-lock-dot{width:18px;height:18px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
+.p-lock-dot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.p-lock-dot img.on{display:block}
+.p-keypad-btn{background:rgba(255,255,255,.2);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#fff;cursor:pointer}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:#1e1e1e;color:#fff;padding:8px 16px;border-radius:16px;font-size:12px;opacity:0;transition:all .25s;z-index:999;pointer-events:none;white-space:nowrap;border:1px solid #2e2e3e}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:700px){.main{grid-template-columns:1fr;height:auto}.panel{max-height:55vh}.preview{padding:14px}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-title">
+    💭 테마 제작 메이커 (iOS)
+    <div style="font-size:11px;font-weight:400;color:rgba(254,229,0,.8);margin-top:2px">@bzsll 제작</div>
+  </div>
+  <button class="hdr-btn" onclick="generate()">💭 .ktheme 생성</button>
+</div>
+<div class="main">
+<div class="panel">
+
+  <!-- 테마 정보 -->
+  <div class="sec open" id="s0">
+    <div class="sec-hd" onclick="tog('s0')"><span class="t">테마 정보</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="irow" style="padding-top:4px">
+        <div class="ilbl">테마 이름</div>
+        <input class="minput" id="m-name" value="MyTheme" style="margin:0">
+      </div>
+      <div class="irow">
+        <div class="ilbl">테마 아이콘</div>
+        <label class="upbtn" id="ub-themeico">이미지 선택<input type="file" accept="image/*" onchange="up(this,'themeico')"></label>
+        <img class="thumb" id="th-themeico"><button class="delbtn" id="db-themeico" onclick="del('themeico')">✕ 제거</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 채팅방 -->
+  <div class="sec open" id="s1">
+    <div class="sec-hd" onclick="tog('s1')"><span class="t">채팅방</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="row"><div class="lbl">헤더 / 보내기버튼 색상</div><div class="swatch"><input type="color" id="c-hdr" value="#EFBD16" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">채팅 배경색</div><div class="swatch"><input type="color" id="c-chatbg" value="#B2C7D9" oninput="render()"></div></div>
+      <div class="irow">
+        <div class="ilbl">채팅방 배경 이미지</div>
+        <label class="upbtn" id="ub-chatbg">이미지 선택<input type="file" accept="image/*" onchange="up(this,'chatbg')"></label>
+        <img class="thumb" id="th-chatbg"><button class="delbtn" id="db-chatbg" onclick="del('chatbg')">✕ 제거</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 말풍선 -->
+  <div class="sec open" id="s2">
+    <div class="sec-hd" onclick="tog('s2')"><span class="t">말풍선</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="row"><div class="lbl">내 말풍선 텍스트색</div><div class="swatch"><input type="color" id="c-me-txt" value="#1a1a1a" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">안 읽음 표시 색상</div><div class="swatch"><input type="color" id="c-unread" value="#3c1e1e" oninput="render()"></div></div>
+
+
+      <!-- 내 말풍선 이미지 -->
+      <div style="background:#22222c;border-radius:8px;padding:8px;margin-top:6px">
+        <div style="font-size:10px;color:#aaa;font-weight:700;margin-bottom:5px">내 말풍선 (기본)</div>
+        <div class="irow" style="padding-top:0;border:none">
+          <div class="ilbl">이미지</div>
+          <div style="display:flex;gap:4px;align-items:stretch;width:100%">
+            <label class="upbtn" style="flex:1" id="ub-bbl-s1">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-s1')"></label>
+            <button class="inset-btn" style="flex:1;justify-content:center" onclick="openInsetEditor('bbl-s1')" >설정</button>
+          </div>
+          <img class="thumb" id="th-bbl-s1"><button class="delbtn" id="db-bbl-s1" onclick="del('bbl-s1')">✕ 제거</button>
+        </div>
+        <div class="irow" style="border:none">
+          <div class="ilbl">선택됨</div>
+          <label class="upbtn" id="ub-bbl-s1sel">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-s1sel')"></label>
+          <img class="thumb" id="th-bbl-s1sel"><button class="delbtn" id="db-bbl-s1sel" onclick="del('bbl-s1sel')">✕ 제거</button>
+        </div>
+              </div>
+      <div style="background:#22222c;border-radius:8px;padding:8px;margin-top:5px">
+        <div style="font-size:10px;color:#aaa;font-weight:700;margin-bottom:5px">내 말풍선 (연속)</div>
+        <div class="irow" style="padding-top:0;border:none">
+          <div class="ilbl">이미지</div>
+          <div style="display:flex;gap:4px;align-items:stretch;width:100%">
+            <label class="upbtn" style="flex:1" id="ub-bbl-s2">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-s2')"></label>
+            <button class="inset-btn" style="flex:1;justify-content:center" onclick="openInsetEditor('bbl-s2')" >설정</button>
+          </div>
+          <img class="thumb" id="th-bbl-s2"><button class="delbtn" id="db-bbl-s2" onclick="del('bbl-s2')">✕ 제거</button>
+        </div>
+        <div class="irow" style="border:none">
+          <div class="ilbl">선택됨</div>
+          <label class="upbtn" id="ub-bbl-s2sel">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-s2sel')"></label>
+          <img class="thumb" id="th-bbl-s2sel"><button class="delbtn" id="db-bbl-s2sel" onclick="del('bbl-s2sel')">✕ 제거</button>
+        </div>
+              </div>
+
+      <!-- 상대 말풍선 이미지 -->
+      <div style="background:#22222c;border-radius:8px;padding:8px;margin-top:8px">
+        <div style="font-size:10px;color:#aaa;font-weight:700;margin-bottom:5px">상대 말풍선 (기본)</div>
+        <div class="row" style="margin-bottom:4px"><div class="lbl">상대 말풍선 텍스트색</div><div class="swatch"><input type="color" id="c-them-txt" value="#1a1a1a" oninput="render()"></div></div>
+        <div class="irow" style="padding-top:0;border:none">
+          <div class="ilbl">이미지</div>
+          <div style="display:flex;gap:4px;align-items:stretch;width:100%">
+            <label class="upbtn" style="flex:1" id="ub-bbl-r1">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-r1')"></label>
+            <button class="inset-btn" style="flex:1;justify-content:center" onclick="openInsetEditor('bbl-r1')" >설정</button>
+          </div>
+          <img class="thumb" id="th-bbl-r1"><button class="delbtn" id="db-bbl-r1" onclick="del('bbl-r1')">✕ 제거</button>
+        </div>
+        <div class="irow" style="border:none">
+          <div class="ilbl">선택됨</div>
+          <label class="upbtn" id="ub-bbl-r1sel">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-r1sel')"></label>
+          <img class="thumb" id="th-bbl-r1sel"><button class="delbtn" id="db-bbl-r1sel" onclick="del('bbl-r1sel')">✕ 제거</button>
+        </div>
+              </div>
+      <div style="background:#22222c;border-radius:8px;padding:8px;margin-top:5px">
+        <div style="font-size:10px;color:#aaa;font-weight:700;margin-bottom:5px">상대 말풍선 (연속)</div>
+        <div class="irow" style="padding-top:0;border:none">
+          <div class="ilbl">이미지</div>
+          <div style="display:flex;gap:4px;align-items:stretch;width:100%">
+            <label class="upbtn" style="flex:1" id="ub-bbl-r2">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-r2')"></label>
+            <button class="inset-btn" style="flex:1;justify-content:center" onclick="openInsetEditor('bbl-r2')" >설정</button>
+          </div>
+          <img class="thumb" id="th-bbl-r2"><button class="delbtn" id="db-bbl-r2" onclick="del('bbl-r2')">✕ 제거</button>
+        </div>
+        <div class="irow" style="border:none">
+          <div class="ilbl">선택됨</div>
+          <label class="upbtn" id="ub-bbl-r2sel">이미지 선택<input type="file" accept="image/*" onchange="up(this,'bbl-r2sel')"></label>
+          <img class="thumb" id="th-bbl-r2sel"><button class="delbtn" id="db-bbl-r2sel" onclick="del('bbl-r2sel')">✕ 제거</button>
+        </div>
+              </div>
+    </div>
+  </div>
+
+  <!-- 입력창 -->
+  <div class="sec" id="s3">
+    <div class="sec-hd" onclick="tog('s3')"><span class="t">입력창</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="row"><div class="lbl">입력창 배경색</div><div class="swatch"><input type="color" id="c-inbar" value="#f5f5f5" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">메뉴 아이콘색</div><div class="swatch"><input type="color" id="c-tico" value="#dddddd" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">텍스트 색상</div><div class="swatch"><input type="color" id="c-intxt" value="#191919" oninput="render()"></div></div>
+    </div>
+  </div>
+
+  <!-- 탭바 -->
+  <div class="sec open" id="s4">
+    <div class="sec-hd" onclick="tog('s4')"><span class="t">하단 탭바</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="row"><div class="lbl">탭바 배경색</div><div class="swatch"><input type="color" id="c-tbar" value="#f0f0f0" oninput="render()"></div></div>
+      <div class="irow">
+        <div class="ilbl">탭바 배경 이미지</div>
+        <label class="upbtn" id="ub-tbar">이미지 선택<input type="file" accept="image/*" onchange="up(this,'tbar')"></label>
+        <img class="thumb" id="th-tbar"><button class="delbtn" id="db-tbar" onclick="del('tbar')">✕ 제거</button>
+      </div>
+      <div id="tab-icon-area"></div>
+    </div>
+  </div>
+
+  <!-- 프로필 & 친구추가 -->
+  <div class="sec open" id="s5">
+    <div class="sec-hd" onclick="tog('s5')"><span class="t">프로필 & 친구추가</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="irow">
+        <div class="ilbl">기본 프로필 이미지</div>
+        <label class="upbtn" id="ub-prof">이미지 선택<input type="file" accept="image/*" onchange="up(this,'prof')"></label>
+        <img class="thumb" id="th-prof"><button class="delbtn" id="db-prof" onclick="del('prof')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">친구추가 아이콘</div>
+        <label class="upbtn" id="ub-addfriend">이미지 선택<input type="file" accept="image/*" onchange="up(this,'addfriend')"></label>
+        <img class="thumb" id="th-addfriend"><button class="delbtn" id="db-addfriend" onclick="del('addfriend')">✕ 제거</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 친구목록 / 메인배경 -->
+  <div class="sec" id="s6">
+    <div class="sec-hd" onclick="tog('s6')"><span class="t">친구목록 / 메인배경</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="row"><div class="lbl">배경색</div><div class="swatch"><input type="color" id="c-fbg" value="#ffffff" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">텍스트 색상</div><div class="swatch"><input type="color" id="c-fname" value="#111111" oninput="render()"></div></div>
+      <div class="irow">
+        <div class="ilbl">배경 이미지</div>
+        <label class="upbtn" id="ub-mainbg">이미지 선택<input type="file" accept="image/*" onchange="up(this,'mainbg')"></label>
+        <img class="thumb" id="th-mainbg"><button class="delbtn" id="db-mainbg" onclick="del('mainbg')">✕ 제거</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 잠금화면 -->
+  <div class="sec" id="s7">
+    <div class="sec-hd" onclick="tog('s7')"><span class="t">잠금화면</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="row"><div class="lbl">배경색</div><div class="swatch"><input type="color" id="c-lock" value="#ffffff" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">텍스트 색상<small>잠금 안내 문구</small></div><div class="swatch"><input type="color" id="c-lock-txt" value="#000000" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">키패드 영역 배경색</div><div class="swatch"><input type="color" id="c-keypad-bg" value="#f0f0f0" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">키패드 텍스트 색상</div><div class="swatch"><input type="color" id="c-keypad-txt" value="#000000" oninput="render()"></div></div>
+      <div class="irow">
+        <div class="ilbl">배경 이미지</div>
+        <label class="upbtn" id="ub-lockbg">이미지 선택<input type="file" accept="image/*" onchange="up(this,'lockbg')"></label>
+        <img class="thumb" id="th-lockbg"><button class="delbtn" id="db-lockbg" onclick="del('lockbg')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 01 (미입력)</div>
+        <label class="upbtn" id="ub-pin1off">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin1off')"></label>
+        <img class="thumb" id="th-pin1off"><button class="delbtn" id="db-pin1off" onclick="del('pin1off')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 02 (미입력)</div>
+        <label class="upbtn" id="ub-pin2off">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin2off')"></label>
+        <img class="thumb" id="th-pin2off"><button class="delbtn" id="db-pin2off" onclick="del('pin2off')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 03 (미입력)</div>
+        <label class="upbtn" id="ub-pin3off">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin3off')"></label>
+        <img class="thumb" id="th-pin3off"><button class="delbtn" id="db-pin3off" onclick="del('pin3off')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 04 (미입력)</div>
+        <label class="upbtn" id="ub-pin4off">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin4off')"></label>
+        <img class="thumb" id="th-pin4off"><button class="delbtn" id="db-pin4off" onclick="del('pin4off')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 01 (입력됨)</div>
+        <label class="upbtn" id="ub-pin1on">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin1on')"></label>
+        <img class="thumb" id="th-pin1on"><button class="delbtn" id="db-pin1on" onclick="del('pin1on')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 02 (입력됨)</div>
+        <label class="upbtn" id="ub-pin2on">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin2on')"></label>
+        <img class="thumb" id="th-pin2on"><button class="delbtn" id="db-pin2on" onclick="del('pin2on')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 03 (입력됨)</div>
+        <label class="upbtn" id="ub-pin3on">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin3on')"></label>
+        <img class="thumb" id="th-pin3on"><button class="delbtn" id="db-pin3on" onclick="del('pin3on')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">비밀번호 04 (입력됨)</div>
+        <label class="upbtn" id="ub-pin4on">이미지 선택<input type="file" accept="image/*" onchange="up(this,'pin4on')"></label>
+        <img class="thumb" id="th-pin4on"><button class="delbtn" id="db-pin4on" onclick="del('pin4on')">✕ 제거</button>
+      </div>
+      <div class="irow">
+        <div class="ilbl">키패드 누를 때 이미지</div>
+        <label class="upbtn" id="ub-keypad">이미지 선택<input type="file" accept="image/*" onchange="up(this,'keypad')"></label>
+        <img class="thumb" id="th-keypad"><button class="delbtn" id="db-keypad" onclick="del('keypad')">✕ 제거</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 알림/배너 -->
+  <div class="sec" id="s8">
+    <div class="sec-hd" onclick="tog('s8')"><span class="t">알림 / 배너</span><span class="v">▼</span></div>
+    <div class="sec-body">
+      <div class="row"><div class="lbl">메세지 알림바 배경색</div><div class="swatch"><input type="color" id="c-notif" value="#ffffff" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">알림 이름 색상</div><div class="swatch"><input type="color" id="c-notif-name" value="#333333" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">알림 메세지 색상</div><div class="swatch"><input type="color" id="c-notif-msg" value="#666666" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">전달완료 배너 배경색</div><div class="swatch"><input type="color" id="c-share" value="#ffffff" oninput="render()"></div></div>
+      <div class="row"><div class="lbl">하단 배너 배경색</div><div class="swatch"><input type="color" id="c-banner" value="#333333" oninput="render()"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 미리보기 -->
+<div class="preview">
+  <div class="ptabs">
+    <button class="ptab on" onclick="sw('chat',this)">채팅방</button>
+    <button class="ptab" onclick="sw('friend',this)">친구목록</button>
+    <button class="ptab" onclick="sw('lock',this)">잠금화면</button>
+    <button class="ptab" onclick="sw('notif',this)">알림</button>
+  </div>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+
+      <!-- 채팅 -->
+      <div class="pscreen on" id="pv-chat">
+        <div id="pv-sbar" class="p-sbar"><span>9:41</span><span style="display:flex;align-items:center;gap:3px"><svg width="14" height="11" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="18" height="12" rx="2"/><path d="M22 7h1v4h-1" stroke-width="2.5"/><rect x="3" y="4" width="14" height="10" rx="1" fill="currentColor" opacity=".5"/></svg></span></div>
+        <div id="pv-chdr" class="p-chdr">
+          <span class="p-chdr-back">‹</span>
+          <div class="p-chdr-title">채팅방</div>
+          <div class="p-chdr-icons">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </div>
+        </div>
+        <div class="p-chatbg">
+          <div class="p-chatbg-color" id="pv-chatbg-color"></div>
+          <div class="p-chatbg-img" id="pv-chatbg-img"></div>
+          <div class="p-msgs">
+            <div class="p-date">오늘</div>
+            <!-- 상대 기본 -->
+            <div class="p-mrow">
+              <div class="p-av" id="pv-av1"><img id="pv-av1-img"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+              <div class="p-mcol">
+                <div class="p-mname">춘식이</div>
+                <div class="p-bwrap">
+                  <div class="p-bbl them" id="pv-bbl-them1"><div class="p-bbl-bg" id="pv-bbl-them1-bg"></div><span class="p-bbl-txt">상대 말풍선 (기본)</span></div>
+                  <span class="p-mtime">9:41</span>
+                </div>
+              </div>
+            </div>
+            <!-- 상대 연속 -->
+            <div class="p-mrow" style="margin-top:-3px">
+              <div style="width:28px;flex-shrink:0"></div>
+              <div class="p-mcol">
+                <div class="p-bwrap">
+                  <div class="p-bbl them" id="pv-bbl-them-cont"><div class="p-bbl-bg" id="pv-bbl-them-cont-bg"></div><span class="p-bbl-txt">상대 말풍선 (연속)</span></div>
+                  <span class="p-mtime">9:42</span>
+                </div>
+              </div>
+            </div>
+            <!-- 내 기본 -->
+            <div class="p-mrow me">
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+                <span id="pv-unread-badge" style="font-size:9px;font-weight:700;color:#3c1e1e;min-width:14px;text-align:center">1</span>
+                <span class="p-mtime">9:43</span>
+              </div>
+              <div class="p-bbl me" id="pv-bbl-me1"><div class="p-bbl-bg" id="pv-bbl-me1-bg"></div><span class="p-bbl-txt">내 말풍선 (기본)</span></div>
+            </div>
+            <!-- 내 연속 -->
+            <div class="p-mrow me" style="margin-top:-3px">
+              <span class="p-mtime">9:43</span>
+              <div class="p-bbl me" id="pv-bbl-me-cont"><div class="p-bbl-bg" id="pv-bbl-me-cont-bg"></div><span class="p-bbl-txt">내 말풍선 (연속)</span></div>
+            </div>
+            <!-- 내 긴 말풍선 -->
+            <div class="p-mrow me" style="margin-top:-3px">
+              <span class="p-mtime">9:44</span>
+              <div class="p-bbl me" id="pv-bbl-me-long" style="max-width:75%"><div class="p-bbl-bg" id="pv-bbl-me-long-bg"></div><span class="p-bbl-txt">내 말풍선 (기본) — 길게 쓸 때</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="p-inbar" id="pv-inbar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <div class="p-inbox" id="pv-inbox">메시지 입력</div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <div class="p-tbar" id="pv-tbar">
+          <div class="p-tbar-bg" id="pv-tbar-bg"></div>
+          <div class="p-titem" id="pti-friend-c"><img class="cico" id="pti-friend-c-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>친구</div>
+          <div class="p-titem" id="pti-chat-c"><img class="cico" id="pti-chat-c-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>채팅</div>
+          <div class="p-titem" id="pti-now-c"><img class="cico" id="pti-now-c-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>지금</div>
+          <div class="p-titem" id="pti-shop-c"><img class="cico" id="pti-shop-c-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>쇼핑</div>
+          <div class="p-titem" id="pti-more-c"><img class="cico" id="pti-more-c-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4"/></svg>더보기</div>
+        </div>
+      </div>
+
+      <!-- 친구목록 -->
+      <div class="pscreen" id="pv-friend">
+        <div class="p-fhdr" id="pv-fhdr">
+          <div class="p-fhdr-t">친구</div>
+          <div class="p-fhdr-icons">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          </div>
+        </div>
+        <div class="p-myprof" id="pv-myprof">
+          <div class="p-myav"><img id="pv-myav-img"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+          <div><div class="p-myname" id="pv-myname">bzsll</div><div class="p-mystatus">상태 메시지</div></div>
+        </div>
+        <div class="p-fsec" id="pv-fsec">친구 3</div>
+        <div class="p-fitems" id="pv-fitems">
+          <div class="p-fitem"><div class="p-fav"><img id="pv-fav1-img"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div><div class="p-fname" id="pv-fn1">라이언</div><div class="p-fstatus">파이팅!</div></div></div>
+          <div class="p-fitem"><div class="p-fav"><img id="pv-fav2-img"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div><div class="p-fname" id="pv-fn2">춘식이</div><div class="p-fstatus">---</div></div></div>
+          <div class="p-fitem"><div class="p-fav"><img id="pv-fav3-img"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><div><div class="p-fname" id="pv-fn3">어피치</div><div class="p-fstatus">---</div></div></div>
+        </div>
+        <div class="p-fill" id="pv-ffill"></div>
+        <div class="p-tbar" id="pv-tbar-f">
+          <div class="p-tbar-bg" id="pv-tbar-bg-f"></div>
+          <div class="p-titem" id="pti-friend-f"><img class="cico" id="pti-friend-f-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>친구</div>
+          <div class="p-titem" id="pti-chat-f"><img class="cico" id="pti-chat-f-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>채팅</div>
+          <div class="p-titem" id="pti-now-f"><img class="cico" id="pti-now-f-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>지금</div>
+          <div class="p-titem" id="pti-shop-f"><img class="cico" id="pti-shop-f-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>쇼핑</div>
+          <div class="p-titem" id="pti-more-f"><img class="cico" id="pti-more-f-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4"/></svg>더보기</div>
+        </div>
+      </div>
+
+      <!-- 잠금 -->
+      <div class="pscreen" id="pv-lock">
+        <div class="p-sbar" id="pv-lock-sbar" style="color:#fff"><span>9:41</span><span style="display:flex;align-items:center;gap:3px"><svg width="11" height="11" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="18" height="12" rx="2"/><path d="M22 7h1v4h-1" stroke-width="2.5"/><rect x="3" y="4" width="14" height="10" rx="1" fill="currentColor" opacity=".6"/></svg></span></div>
+        <div class="p-lock" id="pv-lock-screen" style="flex:1;display:flex;flex-direction:column">
+          <div class="p-lock-bg" id="pv-lock-bg"></div>
+          <div class="p-lock-content" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <!-- 안내 문구 -->
+            <div id="pv-lock-msg" style="font-size:10px;font-weight:600;margin-bottom:16px;color:#000000">비밀번호를 입력하세요</div>
+            <div class="p-lock-dots">
+              <div class="p-lock-dot" id="pv-pin1"><img id="pv-pin1-img"></div>
+              <div class="p-lock-dot" id="pv-pin2"><img id="pv-pin2-img"></div>
+              <div class="p-lock-dot" id="pv-pin3"><img id="pv-pin3-img"></div>
+              <div class="p-lock-dot" id="pv-pin4"><img id="pv-pin4-img"></div>
+            </div>
+          </div>
+          <!-- 키패드 배경 영역 -->
+          <div id="pv-keypad-bg" style="background:#f0f0f0;padding:12px 16px 16px">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:160px;margin:0 auto">
+              <div class="p-keypad-btn" id="pv-kp1">1</div>
+              <div class="p-keypad-btn">2</div>
+              <div class="p-keypad-btn">3</div>
+              <div class="p-keypad-btn">4</div>
+              <div class="p-keypad-btn">5</div>
+              <div class="p-keypad-btn">6</div>
+              <div class="p-keypad-btn">7</div>
+              <div class="p-keypad-btn">8</div>
+              <div class="p-keypad-btn">9</div>
+              <div></div>
+              <div class="p-keypad-btn">0</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 알림 -->
+      <div class="pscreen" id="pv-notif">
+        <div class="p-sbar" style="background:#f0f0f0;color:#333"><span>9:41</span><span style="display:flex;align-items:center;gap:3px"><svg width="11" height="11" viewBox="0 0 24 18" fill="none" stroke="#333" stroke-width="2"><rect x="2" y="3" width="18" height="12" rx="2"/><path d="M22 7h1v4h-1" stroke-width="2.5"/><rect x="3" y="4" width="14" height="10" rx="1" fill="#333" opacity=".5"/></svg></span></div>
+        <div id="pv-notif-bar" style="margin:8px;border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+          <div style="width:32px;height:32px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#ddd;position:relative">
+            <img id="pv-notif-av-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;font-weight:700" id="pv-notif-name">알림 이름</div>
+            <div style="font-size:10px;opacity:.8;margin-top:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" id="pv-notif-msg">알림 메세지입니다</div>
+          </div>
+        </div>
+        <div id="pv-share-bar" style="margin:0 8px;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,.1)">
+          <div style="font-size:10px;flex:1" id="pv-share-name">전달완료 배너입니다</div>
+          <div style="font-size:9px;opacity:.6">방금</div>
+        </div>
+        <div style="flex:1;background:#f5f5f5"></div>
+        <div style="position:relative">
+          <div id="pv-banner" style="padding:10px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#fff">카카오톡</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.7)">새 메세지가 있습니다</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- 인셋 에디터 팝업 -->
+<div id="inset-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center">
+  <div style="background:#18181f;border-radius:16px;padding:20px;width:min(92vw,620px);max-height:92vh;overflow-y:auto;border:1px solid #2e2e3e">
+    <div style="display:flex;align-items:center;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700;color:#FEE500;flex:1" id="ie-title">설정</div>
+      <button onclick="closeInsetEditor()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;padding:2px 6px">✕</button>
+    </div>
+
+    <!-- 탭 -->
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="ie-tab on" id="ie-tab-bg" onclick="switchIeTab('bg')">말풍선 위치</button>
+      <button class="ie-tab" id="ie-tab-edge" onclick="switchIeTab('edge')">텍스트 위치</button>
+    </div>
+
+    <!-- 설명 -->
+    <div id="ie-desc-bg" style="font-size:11px;color:#888;margin-bottom:10px;line-height:1.5">
+      <span style="color:#4a9eff">■</span> 파란 선 = 말풍선이 늘어나는 기준선<br>
+      선을 드래그해서 <b style="color:#fff">말풍선 위치를 설정하세요</b>
+    </div>
+    <div id="ie-desc-edge" style="display:none;font-size:11px;color:#888;margin-bottom:10px;line-height:1.5">
+      <span style="color:#ff9944">■</span> 주황 선 = 텍스트가 시작되는 위치<br>
+      선을 드래그해서 <b style="color:#fff">텍스트 위치를 설정하세요</b>
+    </div>
+
+    <!-- 캔버스 -->
+    <div style="position:relative;overflow:hidden;border-radius:10px;background:#111;display:flex;align-items:center;justify-content:center;min-height:200px" id="ie-canvas-wrap">
+      <canvas id="ie-canvas" style="max-width:100%;cursor:crosshair;touch-action:none"></canvas>
+    </div>
+
+    <!-- 버튼 -->
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button onclick="closeInsetEditor()" style="flex:1;background:#22222c;border:1px solid #2e2e3e;border-radius:10px;padding:10px;color:#aaa;font-family:inherit;font-size:13px;cursor:pointer">취소</button>
+      <button onclick="applyInset()" style="flex:2;background:#FEE500;border:none;border-radius:10px;padding:10px;color:#1a1600;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">적용</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.inset-btn{background:#22222c;border:1.5px dashed #2e2e3e;border-radius:8px;padding:7px 12px;color:#555;cursor:pointer;font-size:11px;font-family:inherit;flex-shrink:0;transition:all .15s;white-space:nowrap}
+.inset-btn:hover{border-color:#FEE500;color:#FEE500}
+.inset-btn.set{border-color:#00c897;color:#00c897;border-style:solid}
+.ie-tab{background:#22222c;border:1.5px solid #2e2e3e;border-radius:8px;padding:6px 14px;color:#777;font-family:inherit;font-size:12px;cursor:pointer}
+.ie-tab.on{background:#FEE500;border-color:#FEE500;color:#1a1600;font-weight:700}
+</style>
+
+<script>
+const I = {};
+
+// 탭 아이콘 목록 (리락쿠마 CSS 기반)
+const TABICONS = [
+  {k:'friend', label:'친구',         fn:['maintabIcoFriends','maintabIcoFriendsSelected']},
+  {k:'chat',   label:'채팅',         fn:['maintabIcoChats','maintabIcoChatsSelected']},
+  {k:'now',    label:'지금/오픈채팅', fn:['maintabIcoNow','maintabIcoNowSelected']},
+  {k:'shop',   label:'쇼핑',         fn:['maintabIcoShopping','maintabIcoShoppingSelected']},
+  {k:'more',   label:'더보기',        fn:['maintabIcoMore','maintabIcoMoreSelected']},
+];
+
+// 말풍선 유형별 값
+const BBL_TYPES = {
+  basic: {
+    s1: '26 24', s2: '26 24', s_edge: '14px 20px 8px 26px', s_edge2: '14px 20px 8px 26px',
+    r1: '29 24', r2: '29 24', r_edge: '14px 23px 8px 20px', r_edge2: '14px 23px 8px 20px',
+  },
+  side: {
+    s1: '6 6',   s2: '6 6',   s_edge: '7px 6px 11px 42px',  s_edge2: '7px 6px 11px 42px',
+    r1: '49 6',  r2: '49 4',  r_edge: '7px 39px 11px 6px',  r_edge2: '7px 39px 11px 6px',
+  },
+  tall: {
+    s1: '16 54', s2: '17 14', s_edge: '39px 11px 7px 33px', s_edge2: '12px 11px 8px 33px',
+    r1: '16 54', r2: '17 14', r_edge: '39px 39px 7px 11px', r_edge2: '12px 23px 8px 11px',
+  },
+  top: {
+    s1: '12 30', s2: '12 12', s_edge: '27px 10px 8px 33px', s_edge2: '10px 8px 8px 33px',
+    r1: '35 27', r2: '35 12', r_edge: '24px 22px 8px 8px',  r_edge2: '12px 22px 8px 8px',
+  },
+};
+
+function applyBblType() {
+  // 선택만 저장, CSS 생성 시 buildCSS에서 읽음
+  render();
+}
+
+function getBblVal(side, key) {
+  const type = g('bbl-type-' + side) || 'basic';
+  return (BBL_TYPES[type] || BBL_TYPES.basic)[key] || '';
+}
+
+// ── 인셋 에디터 ──
+let ieKey = null;      // 현재 편집 중인 말풍선 키
+let ieTab = 'bg';      // 'bg' | 'edge'
+let ieImg = null;      // 원본 이미지 (Image 객체)
+let ieScale = 1;       // 표시 스케일 (캔버스px / 원본px)
+let ieDragging = null; // 현재 드래그 중인 선 id
+
+// 인셋 값 저장소 (키 → {bgH, bgV, et, el, eb, er})
+const INSET = {};
+
+function getInset(key) {
+  if (INSET[key]) return INSET[key];
+  // 이미지 크기 기반 기본값 (이미지 20% 정도)
+  const img = I[key];
+  if (img) {
+    const el = new Image();
+    el.src = img.url;
+    const w = el.naturalWidth  || 100;
+    const h = el.naturalHeight || 100;
+    const def = { bgL: Math.round(w*0.15), bgR: Math.round(w*0.15),
+                  bgT: Math.round(h*0.15), bgB: Math.round(h*0.15),
+                  et:  Math.round(h*0.12), el:  Math.round(w*0.12),
+                  eb:  Math.round(h*0.10), er:  Math.round(w*0.12) };
+    return def;
+  }
+  return { bgL:10, bgR:10, bgT:10, bgB:10, et:10, el:10, eb:10, er:10 };
+}
+
+function openInsetEditor(key) {
+  if (!I[key]) { toast('먼저 이미지를 업로드하세요'); return; }
+  ieKey = key;
+  ieTab = 'bg';
+
+  const modal = document.getElementById('inset-modal');
+  modal.style.display = 'flex';
+
+  // 제목
+  const names = {
+    'bbl-s1':'내 말풍선 (기본)', 'bbl-s2':'내 말풍선 (연속)',
+    'bbl-r1':'상대 말풍선 (기본)', 'bbl-r2':'상대 말풍선 (연속)',
+  };
+  document.getElementById('ie-title').textContent = (names[key]||key) + ' 설정';
+
+  // 탭 초기화
+  document.getElementById('ie-tab-bg').classList.add('on');
+  document.getElementById('ie-tab-edge').classList.remove('on');
+  document.getElementById('ie-desc-bg').style.display = '';
+  document.getElementById('ie-desc-edge').style.display = 'none';
+
+  // 이미지 로드 후 캔버스 초기화
+  ieImg = new Image();
+  ieImg.onload = () => initCanvas();
+  ieImg.src = I[key].url;
+}
+
+function closeInsetEditor() {
+  document.getElementById('inset-modal').style.display = 'none';
+  ieKey = null; ieImg = null; ieDragging = null;
+}
+
+function switchIeTab(tab) {
+  ieTab = tab;
+  document.getElementById('ie-tab-bg').classList.toggle('on', tab==='bg');
+  document.getElementById('ie-tab-edge').classList.toggle('on', tab==='edge');
+  document.getElementById('ie-desc-bg').style.display = tab==='bg' ? '' : 'none';
+  document.getElementById('ie-desc-edge').style.display = tab==='edge' ? '' : 'none';
+  drawCanvas();
+}
+
+function initCanvas() {
+  const wrap = document.getElementById('ie-canvas-wrap');
+  const canvas = document.getElementById('ie-canvas');
+  const maxW = wrap.clientWidth || 560;
+  const maxH = window.innerHeight * 0.5;
+
+  ieScale = Math.min(maxW / ieImg.naturalWidth, maxH / ieImg.naturalHeight, 2);
+  canvas.width  = Math.round(ieImg.naturalWidth  * ieScale);
+  canvas.height = Math.round(ieImg.naturalHeight * ieScale);
+
+  // 저장된 값 없으면 기본값 초기화
+  if (!INSET[ieKey]) INSET[ieKey] = getInset(ieKey);
+
+  drawCanvas();
+  bindCanvasEvents();
+}
+
+function toCanvas(px) { return Math.round(px * ieScale); }
+function toReal(cpx)  { return Math.round(cpx / ieScale); }
+
+function drawCanvas() {
+  const canvas = document.getElementById('ie-canvas');
+  if (!canvas || !ieImg) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const v = INSET[ieKey] || getInset(ieKey);
+
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(ieImg, 0, 0, W, H);
+
+  if (ieTab === 'bg') {
+    // 배경 인셋 - 선 4개 각각 독립
+    const lL = toCanvas(v.bgL);  // 왼쪽 세로선
+    const lR = toCanvas(v.bgR);  // 오른쪽 세로선 (오른쪽에서)
+    const lT = toCanvas(v.bgT);  // 위 가로선
+    const lB = toCanvas(v.bgB);  // 아래 가로선 (아래에서)
+
+    // 반투명 늘어나는 영역
+    ctx.fillStyle = 'rgba(74,158,255,0.18)';
+    ctx.fillRect(lL, lT, W-lL-lR, H-lT-lB);
+
+    ctx.strokeStyle = '#4a9eff'; ctx.lineWidth = 2.5;
+    ctx.setLineDash([6,3]);
+    ctx.beginPath(); ctx.moveTo(lL,   0); ctx.lineTo(lL,   H); ctx.stroke(); // 왼
+    ctx.beginPath(); ctx.moveTo(W-lR, 0); ctx.lineTo(W-lR, H); ctx.stroke(); // 오른
+    ctx.beginPath(); ctx.moveTo(0, lT);   ctx.lineTo(W, lT);   ctx.stroke(); // 위
+    ctx.beginPath(); ctx.moveTo(0, H-lB); ctx.lineTo(W, H-lB); ctx.stroke(); // 아래
+    ctx.setLineDash([]);
+
+    // 값 레이블
+    ctx.fillStyle = '#4a9effcc'; ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(v.bgL+'px', lL+3, 14);
+    ctx.fillText(v.bgR+'px', W-lR+3, 14);
+    ctx.fillText(v.bgT+'px', 3, lT-4);
+    ctx.fillText(v.bgB+'px', 3, H-lB+12);
+
+    document.getElementById('ie-val-bgL') && (document.getElementById('ie-val-bgL').textContent = v.bgL);
+    document.getElementById('ie-val-bgR') && (document.getElementById('ie-val-bgR').textContent = v.bgR);
+    document.getElementById('ie-val-bgT') && (document.getElementById('ie-val-bgT').textContent = v.bgT);
+    document.getElementById('ie-val-bgB') && (document.getElementById('ie-val-bgB').textContent = v.bgB);
+
+  } else {
+    const et = toCanvas(v.et), el = toCanvas(v.el);
+    const eb = toCanvas(v.eb), er = toCanvas(v.er);
+
+    ctx.fillStyle = 'rgba(255,153,68,0.18)';
+    ctx.fillRect(el, et, W-el-er, H-et-eb);
+
+    ctx.strokeStyle = '#ff9944'; ctx.lineWidth = 2.5;
+    ctx.setLineDash([6,3]);
+    ctx.beginPath(); ctx.moveTo(0, et);   ctx.lineTo(W, et);   ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, H-eb); ctx.lineTo(W, H-eb); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(el, 0);   ctx.lineTo(el, H);   ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W-er, 0); ctx.lineTo(W-er, H); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#ff9944cc'; ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(v.et+'px', W/2, et-4);
+    ctx.fillText(v.eb+'px', W/2, H-eb+12);
+    ctx.fillText(v.el+'px', el+3, H/2);
+    ctx.fillText(v.er+'px', W-er+3, H/2);
+
+    document.getElementById('ie-val-et') && (document.getElementById('ie-val-et').textContent = v.et);
+    document.getElementById('ie-val-el') && (document.getElementById('ie-val-el').textContent = v.el);
+    document.getElementById('ie-val-eb') && (document.getElementById('ie-val-eb').textContent = v.eb);
+    document.getElementById('ie-val-er') && (document.getElementById('ie-val-er').textContent = v.er);
+  }
+}
+
+function getPointer(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * (canvas.width  / rect.width),
+    y: (clientY - rect.top)  * (canvas.height / rect.height),
+  };
+}
+
+function hitTest(x, y, canvas) {
+  const v = INSET[ieKey];
+  const W = canvas.width, H = canvas.height;
+  const HIT = 14;
+
+  if (ieTab === 'bg') {
+    const lL = toCanvas(v.bgL), lR = toCanvas(v.bgR);
+    const lT = toCanvas(v.bgT), lB = toCanvas(v.bgB);
+    if (Math.abs(x - lL)     < HIT) return 'bgL';
+    if (Math.abs(x - (W-lR)) < HIT) return 'bgR';
+    if (Math.abs(y - lT)     < HIT) return 'bgT';
+    if (Math.abs(y - (H-lB)) < HIT) return 'bgB';
+  } else {
+    const et = toCanvas(v.et), el = toCanvas(v.el);
+    const eb = toCanvas(v.eb), er = toCanvas(v.er);
+    if (Math.abs(y - et)     < HIT) return 'et';
+    if (Math.abs(y - (H-eb)) < HIT) return 'eb';
+    if (Math.abs(x - el)     < HIT) return 'el';
+    if (Math.abs(x - (W-er)) < HIT) return 'er';
+  }
+  return null;
+}
+
+function bindCanvasEvents() {
+  const canvas = document.getElementById('ie-canvas');
+  canvas.onmousedown = canvas.ontouchstart = (e) => {
+    e.preventDefault();
+    const p = getPointer(e, canvas);
+    ieDragging = hitTest(p.x, p.y, canvas);
+  };
+  canvas.onmousemove = canvas.ontouchmove = (e) => {
+    e.preventDefault();
+    const p = getPointer(e, canvas);
+    const v = INSET[ieKey];
+    const W = canvas.width, H = canvas.height;
+
+    if (!ieDragging) {
+      const hit = hitTest(p.x, p.y, canvas);
+      const isH = hit && (hit==='bgL'||hit==='bgR'||hit==='el'||hit==='er');
+      canvas.style.cursor = hit ? (isH ? 'ew-resize' : 'ns-resize') : 'crosshair';
+    }
+
+    if (!ieDragging) return;
+    const MIN = 1;
+
+    if      (ieDragging==='bgL') v.bgL = Math.max(MIN, toReal(Math.min(p.x, W-toCanvas(v.bgR)-4)));
+    else if (ieDragging==='bgR') v.bgR = Math.max(MIN, toReal(Math.min(W-p.x, W-toCanvas(v.bgL)-4)));
+    else if (ieDragging==='bgT') v.bgT = Math.max(MIN, toReal(Math.min(p.y, H-toCanvas(v.bgB)-4)));
+    else if (ieDragging==='bgB') v.bgB = Math.max(MIN, toReal(Math.min(H-p.y, H-toCanvas(v.bgT)-4)));
+    else if (ieDragging==='et')  v.et  = Math.max(MIN, toReal(Math.min(p.y, H-toCanvas(v.eb)-4)));
+    else if (ieDragging==='eb')  v.eb  = Math.max(MIN, toReal(Math.min(H-p.y, H-toCanvas(v.et)-4)));
+    else if (ieDragging==='el')  v.el  = Math.max(MIN, toReal(Math.min(p.x, W-toCanvas(v.er)-4)));
+    else if (ieDragging==='er')  v.er  = Math.max(MIN, toReal(Math.min(W-p.x, W-toCanvas(v.el)-4)));
+
+    drawCanvas();
+  };
+  canvas.onmouseup = canvas.ontouchend = () => { ieDragging = null; };
+}
+
+function applyInset() {
+  if (!ieKey || !INSET[ieKey]) return;
+  const v = INSET[ieKey];
+  const scale = (I[ieKey] && I[ieKey].scale) || 3;
+  const s = scale;
+  const bgL1 = Math.round(v.bgL/s), bgR1 = Math.round(v.bgR/s);
+  const bgT1 = Math.round(v.bgT/s), bgB1 = Math.round(v.bgB/s);
+  const et1 = Math.round(v.et/s), el1 = Math.round(v.el/s);
+  const eb1 = Math.round(v.eb/s), er1 = Math.round(v.er/s);
+
+  const disp = document.getElementById('inset-display-' + ieKey);
+  if (disp) {
+    disp.style.display = 'block';
+    disp.innerHTML = `✅ 설정 완료 · 말풍선 위치: ${bgT1} ${bgL1} ${bgB1} ${bgR1} · 텍스트 위치: ${et1} ${el1} ${eb1} ${er1}`;
+  }
+
+  const btns = document.querySelectorAll('.inset-btn');
+  btns.forEach(b => { if (b.getAttribute('onclick')?.includes(ieKey)) b.classList.add('set'); });
+
+  render();
+  toast('설정 적용!');
+  closeInsetEditor();
+}
+
+function getBblInsetVal(key, type) {
+  if (!INSET[key]) return null;
+  const v = INSET[key];
+  const scale = (I[key] && I[key].scale) || 3; // 기본 3x 가정
+  const s = scale;
+  // 원본px ÷ scale = 1x CSS값
+  const bgL = Math.round(v.bgL / s), bgR = Math.round(v.bgR / s);
+  const bgT = Math.round(v.bgT / s), bgB = Math.round(v.bgB / s);
+  const et = Math.round(v.et / s), el = Math.round(v.el / s);
+  const eb = Math.round(v.eb / s), er = Math.round(v.er / s);
+
+  if (type === 'bg1' || type === 'bg2') return bgL + ' ' + bgT;
+  if (type === 'edge1' || type === 'edge2') return `${et}px ${el}px ${eb}px ${er}px`;
+  return null;
+}
+
+function buildTabIconUI() {
+  const area = document.getElementById('tab-icon-area');
+  area.innerHTML = TABICONS.map(t => `
+    <div style="background:#22222c;border-radius:8px;padding:7px 8px;margin-bottom:5px;margin-top:4px">
+      <div style="font-size:10px;color:#aaa;font-weight:700;margin-bottom:5px">${t.label} 탭</div>
+      <div style="display:flex;gap:6px">
+        <div style="flex:1">
+          <div style="font-size:9px;color:#555;margin-bottom:2px">미선택</div>
+          <label class="upbtn" id="ub-${t.k}-off" style="padding:4px 7px;font-size:10px">이미지 선택<input type="file" accept="image/*" onchange="up(this,'${t.k}-off')"></label>
+          <img class="thumb" id="th-${t.k}-off" style="height:30px">
+          <button class="delbtn" id="db-${t.k}-off" onclick="del('${t.k}-off')">✕ 제거</button>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:9px;color:#555;margin-bottom:2px">선택됨</div>
+          <label class="upbtn" id="ub-${t.k}-on" style="padding:4px 7px;font-size:10px">이미지 선택<input type="file" accept="image/*" onchange="up(this,'${t.k}-on')"></label>
+          <img class="thumb" id="th-${t.k}-on" style="height:30px">
+          <button class="delbtn" id="db-${t.k}-on" onclick="del('${t.k}-on')">✕ 제거</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function detectScale(filename, w, h) {
+  // 파일명에 @2x, @3x 포함 시 우선
+  if (/@3x/i.test(filename)) return 3;
+  if (/@2x/i.test(filename)) return 2;
+  // 카카오 기준: 말풍선 표준 1x 크기 ~50x40px 이하면 1x, 그 이상은 비율로 판단
+  if (w <= 80 && h <= 120)  return 1;
+  if (w <= 160 && h <= 240) return 2;
+  return 3;
+}
+
+function up(input, key) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    // 이미지 크기 로드 후 배율 저장
+    const tmpImg = new Image();
+    tmpImg.onload = () => {
+      const scale = detectScale(file.name, tmpImg.naturalWidth, tmpImg.naturalHeight);
+      I[key] = { url, scale, w: tmpImg.naturalWidth, h: tmpImg.naturalHeight };
+      const th = document.getElementById('th-' + key);
+      const db = document.getElementById('db-' + key);
+      const ub = document.getElementById('ub-' + key);
+      if (th) { th.src = url; th.classList.add('show'); }
+      if (db) db.classList.add('show');
+      if (ub) ub.classList.add('has');
+      // 배율 표시
+      const disp = document.getElementById('inset-display-' + key);
+      if (disp) {
+        disp.style.display = 'block';
+        disp.textContent = `이미지: ${tmpImg.naturalWidth}×${tmpImg.naturalHeight}px → ${scale}x 감지됨`;
+      }
+      render();
+      toast(`업로드: ${file.name} (${scale}x)`);
+    };
+    tmpImg.src = url;
+  };
+  reader.readAsDataURL(file);
+}
+
+function del(key) {
+  delete I[key];
+  const th = document.getElementById('th-' + key);
+  const db = document.getElementById('db-' + key);
+  const ub = document.getElementById('ub-' + key);
+  if (th) { th.src=''; th.classList.remove('show'); }
+  if (db) db.classList.remove('show');
+  if (ub) ub.classList.remove('has');
+  render();
+}
+
+function g(id) { const e = document.getElementById(id); return e ? e.value : ''; }
+function u(key) { return I[key] ? I[key].url : null; }
+
+function setStyle(id, prop, val) {
+  const e = document.getElementById(id);
+  if (e) e.style[prop] = val;
+}
+function setBg(id, key) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  const url = u(key);
+  if (url) { e.style.backgroundImage = 'url(' + url + ')'; e.classList.add('on'); }
+  else { e.style.backgroundImage = ''; e.classList.remove('on'); }
+}
+function setImg(id, key) {
+  const e = document.getElementById(id);
+  if (!e) return;
+  const url = u(key);
+  if (url) { e.src = url; e.classList.add('on'); }
+  else { e.src = ''; e.classList.remove('on'); }
+}
+
+function render() {
+  const hdr   = g('c-hdr')   || '#EFBD16';
+  const chatbg= g('c-chatbg')|| '#B2C7D9';
+  const meTxt = g('c-me-txt')|| '#1a1a1a';
+  const thTxt = g('c-them-txt')|| '#1a1a1a';
+  const inbar = g('c-inbar') || '#f5f5f5';
+  const tbar  = g('c-tbar')  || '#ffffff';
+  const fbg   = g('c-fbg')   || '#ffffff';
+  const fname = g('c-fname') || '#111111';
+  const lock  = g('c-lock')  || '#1a1a2e';
+  const meBbl  = '#FEE500';   // 내 말풍선 기본 배경색
+  const themBbl= '#ffffff';   // 상대 말풍선 기본 배경색
+
+  // 미리보기 배경 원래대로
+  const preview = document.querySelector('.preview');
+  if (preview) preview.style.background = '';
+
+  // 헤더
+  setStyle('pv-sbar','background', chatbg);  // 채팅 헤더 = 채팅 배경색
+  setStyle('pv-chdr','background', chatbg);
+  setStyle('pv-lock-sbar','background', lock);
+
+  // 13. unread 뱃지 - 배경 없이 글씨색만
+  const unreadEl = document.getElementById('pv-unread-badge');
+  if (unreadEl) unreadEl.style.color = g('c-unread') || '#3c1e1e';
+
+  // 채팅 배경
+  setStyle('pv-chatbg-color','background', chatbg);
+  setBg('pv-chatbg-img', 'chatbg');
+
+  // 말풍선 텍스트
+  ['pv-bbl-me1','pv-bbl-me-cont','pv-bbl-me-long'].forEach(id => setStyle(id,'color', meTxt));
+  ['pv-bbl-them1','pv-bbl-them-cont'].forEach(id => setStyle(id,'color', thTxt));
+
+  // 말풍선 이미지 + 9-slice canvas 렌더링
+  const bblMap = [
+    { wrapId:'pv-bbl-me1',       imgKey:'bbl-s1' },
+    { wrapId:'pv-bbl-me-cont',   imgKey:'bbl-s2' },
+    { wrapId:'pv-bbl-me-long',   imgKey:'bbl-s1' },
+    { wrapId:'pv-bbl-them1',     imgKey:'bbl-r1' },
+    { wrapId:'pv-bbl-them-cont', imgKey:'bbl-r2' },
+  ];
+  bblMap.forEach(({ wrapId, imgKey }) => {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    const imgData = I[imgKey];
+    const iv = INSET[imgKey];
+
+    if (imgData && imgData.url && iv) {
+      const sc = imgData.scale || 3;
+      const bgT = Math.round(iv.bgT / sc);
+      const bgR = Math.round(iv.bgR / sc);
+      const bgB = Math.round(iv.bgB / sc);
+      const bgL = Math.round(iv.bgL / sc);
+      const et  = Math.round(iv.et  / sc);
+      const er  = Math.round(iv.er  / sc);
+      const eb  = Math.round(iv.eb  / sc);
+      const el  = Math.round(iv.el  / sc);
+
+      // 엣지인셋 → padding (텍스트 위치)
+      wrap.style.padding  = `${et}px ${er}px ${eb}px ${el}px`;
+      wrap.style.background   = 'none';
+      wrap.style.borderRadius = '0';
+      wrap.style.border       = 'none';
+      wrap.style.borderImage  = 'none';
+      wrap.style.boxShadow    = 'none';
+      wrap.style.color = wrap.classList.contains('me') ? meTxt : thTxt;
+
+      // canvas로 9-slice 배경 그리기
+      const drawBubble = () => {
+        const W = wrap.offsetWidth  || 80;
+        const H = wrap.offsetHeight || 40;
+        let cv = wrap._sliceCanvas;
+        if (!cv) {
+          cv = document.createElement('canvas');
+          cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0';
+          wrap.style.position = 'relative';
+          wrap.insertBefore(cv, wrap.firstChild);
+          wrap._sliceCanvas = cv;
+        }
+        cv.width  = W;
+        cv.height = H;
+        const ctx = cv.getContext('2d');
+        ctx.clearRect(0, 0, W, H);
+
+        const img = new Image();
+        img.onload = () => {
+          const iw = img.naturalWidth, ih = img.naturalHeight;
+          // 9 슬라이스 좌표 (원본 이미지 기준 - 배경인셋을 원본px로)
+          const sl = iv.bgL, sr = iv.bgR, st = iv.bgT, sb = iv.bgB;
+          // 캔버스 기준 slice
+          const dl = bgL, dr = bgR, dt = bgT, db = bgB;
+
+          const pieces = [
+            // [srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH]
+            // 모서리 4개 (고정)
+            [0,       0,       sl,          st,          0,    0,    dl,    dt   ], // 좌상
+            [iw-sr,   0,       sr,          st,          W-dr, 0,    dr,    dt   ], // 우상
+            [0,       ih-sb,   sl,          sb,          0,    H-db, dl,    db   ], // 좌하
+            [iw-sr,   ih-sb,   sr,          sb,          W-dr, H-db, dr,    db   ], // 우하
+            // 변 4개 (늘어남)
+            [sl,      0,       iw-sl-sr,    st,          dl,   0,    W-dl-dr, dt   ], // 상
+            [sl,      ih-sb,   iw-sl-sr,    sb,          dl,   H-db, W-dl-dr, db   ], // 하
+            [0,       st,      sl,          ih-st-sb,    0,    dt,   dl,    H-dt-db], // 좌
+            [iw-sr,   st,      sr,          ih-st-sb,    W-dr, dt,   dr,    H-dt-db], // 우
+            // 중앙 (늘어남)
+            [sl,      st,      iw-sl-sr,    ih-st-sb,    dl,   dt,   W-dl-dr, H-dt-db], // 중
+          ];
+          pieces.forEach(([sx,sy,sw,sh,dx,dy,dw,dh]) => {
+            if (sw>0 && sh>0 && dw>0 && dh>0)
+              ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+          });
+        };
+        img.src = imgData.url;
+      };
+
+      // 크기 변화 감지해서 재그리기
+      if (wrap._sliceObs) wrap._sliceObs.disconnect();
+      const obs = new ResizeObserver(() => drawBubble());
+      obs.observe(wrap);
+      wrap._sliceObs = obs;
+      setTimeout(drawBubble, 0);
+
+    } else {
+      // canvas 제거
+      if (wrap._sliceCanvas) { wrap._sliceCanvas.remove(); wrap._sliceCanvas = null; }
+      if (wrap._sliceObs)    { wrap._sliceObs.disconnect(); wrap._sliceObs = null; }
+      if (imgData && imgData.url) {
+        wrap.style.background   = `url("${imgData.url}") center/100% 100% no-repeat`;
+        wrap.style.borderRadius = '0';
+        wrap.style.border       = 'none';
+        wrap.style.padding      = '5px 9px';
+      } else {
+        wrap.style.background   = wrap.classList.contains('me') ? meBbl : themBbl;
+        wrap.style.borderRadius = '12px';
+        wrap.style.border       = 'none';
+        wrap.style.borderImage  = 'none';
+        wrap.style.padding      = '5px 9px';
+        wrap.style.boxShadow    = '';
+      }
+    }
+  });
+
+  // 입력창
+  setStyle('pv-inbar','background', inbar);
+
+  // 탭바
+  setStyle('pv-tbar','background', tbar);
+  setStyle('pv-tbar-f','background', tbar);
+  setBg('pv-tbar-bg', 'tbar');
+  setBg('pv-tbar-bg-f', 'tbar');
+
+  // 탭 아이콘
+  TABICONS.forEach(t => {
+    ['c','f'].forEach(s => {
+      const el  = document.getElementById('pti-' + t.k + '-' + s);
+      const ico = document.getElementById('pti-' + t.k + '-' + s + '-img');
+      const svg = el ? el.querySelector('svg') : null;
+      if (!ico || !svg) return;
+      const url = u(t.k + '-off');
+      if (url) { ico.src = url; ico.classList.add('on'); svg.classList.add('hide'); }
+      else {
+        ico.classList.remove('on'); svg.classList.remove('hide');
+        // 탭바 아이콘 색상 적용
+        el.style.color = tbar === '#f0f0f0' || tbar === '#ffffff' ? '#888' : '#fff';
+      }
+    });
+  });
+
+  // 친구목록 아이콘 검은색
+  const fhdr = document.getElementById('pv-fhdr');
+  if (fhdr) { fhdr.style.color = '#111'; }
+  setStyle('pv-fhdr', 'background', fbg);
+
+  // 프로필
+  ['pv-av1-img','pv-myav-img',
+   'pv-fav1-img','pv-fav2-img','pv-fav3-img',
+   'pv-notif-av-img'].forEach(id => setImg(id, 'prof'));
+
+  // 친구목록
+  ['pv-myprof','pv-fsec','pv-fitems','pv-ffill'].forEach(id => setStyle(id,'background', fbg));
+  ['pv-fn1','pv-fn2','pv-fn3','pv-myname'].forEach(id => setStyle(id,'color', fname));
+  // 보조 텍스트색 = fname에 투명도 60% (상태메시지, 마지막메시지)
+  const fnameSubtle = fname + '99';
+  document.querySelectorAll('.p-fstatus, .p-mystatus').forEach(el => el.style.color = fnameSubtle);
+
+  // 잠금
+  setStyle('pv-lock-screen','background', lock);
+  setBg('pv-lock-bg', 'lockbg');
+  const locktxt  = g('c-lock-txt')   || '#000000';
+  const kptxt    = g('c-keypad-txt') || '#000000';
+  const kpbg     = g('c-keypad-bg')  || '#f0f0f0';
+  // 안내 문구 색
+  setStyle('pv-lock-msg', 'color', locktxt);
+  // 키패드 배경
+  setStyle('pv-keypad-bg', 'background', kpbg);
+  // 키패드 숫자 색
+  document.querySelectorAll('.p-keypad-btn').forEach(el => el.style.color = kptxt);
+
+  // 핀 - 각 자리별 이미지 반영
+  const pinKeys = ['pin1on','pin2on','pin3on','pin4on'];
+  const pinOffKeys = ['pin1off','pin2off','pin3off','pin4off'];
+  ['pv-pin1','pv-pin2','pv-pin3','pv-pin4'].forEach((id, i) => {
+    const e = document.getElementById(id);
+    if (!e) return;
+    const img = e.querySelector('img');
+    const onUrl  = u(pinKeys[i]);
+    const offUrl = u(pinOffKeys[i]);
+    const showUrl = i < 2 ? onUrl : offUrl;
+    if (showUrl && img) {
+      img.src = showUrl; img.classList.add('on');
+      e.style.background = 'transparent';
+    } else {
+      if (img) img.classList.remove('on');
+      // 배경색에 따라 핀 색상 조정
+      e.style.background = i < 2
+        ? 'rgba(128,128,128,0.7)'
+        : 'rgba(128,128,128,0.3)';
+    }
+  });
+
+  // 알림바
+  const notif     = g('c-notif')     || '#ffffff';
+  const notifName = g('c-notif-name')|| '#333333';
+  const notifMsg  = g('c-notif-msg') || '#666666';
+  const share     = g('c-share')     || '#ffffff';
+  const banner    = g('c-banner')    || '#333333';
+  setStyle('pv-notif-bar','background', notif);
+  setStyle('pv-notif-name','color', notifName);
+  setStyle('pv-notif-msg','color', notifMsg);
+  setStyle('pv-share-bar','background', share);
+  setStyle('pv-share-name','color', notifName);
+  setStyle('pv-banner','background', banner);
+}
+
+function sw(tab, btn) {
+  document.querySelectorAll('.ptab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.pscreen').forEach(s => s.classList.remove('on'));
+  document.getElementById('pv-' + tab).classList.add('on');
+}
+
+function tog(id) { document.getElementById(id).classList.toggle('open'); }
+
+// CSS 생성 - 리락쿠마 CSS 구조 100% 동일
+function buildCSS() {
+  const name  = g('m-name')  || 'MyTheme';
+  const id    = g('m-id')    || 'com.myname.mytheme';
+  const auth  = g('m-author')|| '';
+  const ver   = g('m-ver')   || '1.0';
+  const hdr   = g('c-hdr')   || '#EFBD16';
+  const chatbg= g('c-chatbg')|| '#B2C7D9';
+  const meTxt = g('c-me-txt')|| '#1a1a1a';
+  const thTxt = g('c-them-txt')|| '#1a1a1a';
+  const unread= g('c-unread')|| '#3c1e1e';
+  const inbar = g('c-inbar') || '#f5f5f5';
+  const tico  = g('c-tico')  || '#aaaaaa';
+  const intxt = g('c-intxt') || '#191919';
+  const tbar  = g('c-tbar')  || '#ffffff';
+  const fbg   = g('c-fbg')   || '#ffffff';
+  const fname = g('c-fname') || '#111111';
+  const lock  = g('c-lock')  || '#1a1a2e';
+  const locktxt = g('c-lock-txt') || '#000000';
+  const kptxt = g('c-keypad-txt') || '#000000';
+  const kpbg  = g('c-keypad-bg')  || '#f0f0f0';
+  const notif = g('c-notif') || '#ffffff';
+  const notifName = g('c-notif-name') || '#333333';
+  const notifMsg  = g('c-notif-msg')  || '#666666';
+  const share = g('c-share') || '#ffffff';
+  const banner= g('c-banner')|| '#333333';
+
+  // 탭 아이콘 fn 매핑
+  const TIFN = {};
+  TABICONS.forEach(t => {
+    TIFN[t.k+'-off'] = t.fn[0] + '.png';
+    TIFN[t.k+'-on']  = t.fn[1] + '.png';
+  });
+  const bblFN = {
+    'bbl-s1':    'chatroomBubbleSend01.png',
+    'bbl-s1sel': 'chatroomBubbleSend01Selected.png',
+    'bbl-s2':    'chatroomBubbleSend02.png',
+    'bbl-s2sel': 'chatroomBubbleSend02Selected.png',
+    'bbl-r1':    'chatroomBubbleReceive01.png',
+    'bbl-r1sel': 'chatroomBubbleReceive01Selected.png',
+    'bbl-r2':    'chatroomBubbleReceive02.png',
+    'bbl-r2sel': 'chatroomBubbleReceive02Selected.png',
+  };
+  const otherFN = {
+    'chatbg':   'chatroomBgImage.png',
+    'tbar':     'maintabBgImage.png',
+    'prof':     'profileImg01.png',
+    'addfriend':'findBtnAddFriend.png',
+    'mainbg':   'mainBgImage.png',
+    'lockbg':   'passcodeBgImage.png',
+    'pin1off':  'passcodeImgCode01.png',
+    'pin2off':  'passcodeImgCode02.png',
+    'pin3off':  'passcodeImgCode03.png',
+    'pin4off':  'passcodeImgCode04.png',
+    'pin1on':   'passcodeImgCode01Selected.png',
+    'pin2on':   'passcodeImgCode02Selected.png',
+    'pin3on':   'passcodeImgCode03Selected.png',
+    'pin4on':   'passcodeImgCode04Selected.png',
+    'keypad':   'passcodeKeypadPressed.png',
+    'themeico': 'commonIcoTheme.png',
+  };
+  const allFN = {...TIFN, ...bblFN, ...otherFN};
+  // 이미지 경로: 업로드 있으면 파일명, 없으면 기본 파일명 (Images/ 없이)
+  // 이미지 경로: 업로드 있으면 파일명 사용, 없으면 파일명만 (Images/ 없이)
+  // 연속(s2/r2)은 기본(s1/r1)으로 자동 fallback 안함 - 업로드된 것만 사용
+  const img = (key) => allFN[key] || '';
+  // 연속 이미지: 업로드 없으면 기본 이미지 파일명으로 fallback
+  const imgFallback = (key, fallbackKey) => allFN[key] || '';
+
+  return `/*
+ Manifest
+ */
+
+ManifestStyle
+{
+    -kakaotalk-theme-name: '${name}';
+    -kakaotalk-theme-version: '${ver}';
+    -kakaotalk-theme-url: 'http://www.kakao.com';
+    -kakaotalk-author-name: '${auth}';
+    -kakaotalk-theme-id: '${id}';
+}
+
+
+/*
+ TabBar Style
+ */
+
+TabBarStyle-Main
+{
+    background-color: ${tbar};
+    -ios-background-image: '${img('tbar')}';
+    -ios-friends-normal-icon-image: '${img('friend-off')}';
+    -ios-friends-selected-icon-image: '${img('friend-on')}';
+    -ios-chats-normal-icon-image: '${img('chat-off')}';
+    -ios-chats-selected-icon-image: '${img('chat-on')}';
+    -ios-now-normal-icon-image: '${img('now-off')}';
+    -ios-now-selected-icon-image: '${img('now-on')}';
+    -ios-openchats-normal-icon-image: '${img('now-off')}';
+    -ios-openchats-selected-icon-image: '${img('now-on')}';
+    -ios-shopping-normal-icon-image: '${img('shop-off')}';
+    -ios-shopping-selected-icon-image: '${img('shop-on')}';
+    -ios-more-normal-icon-image: '${img('more-off')}';
+    -ios-more-selected-icon-image: '${img('more-on')}';
+}
+
+
+/*
+ MainView Style
+ */
+
+HeaderStyle-Main
+{
+    -ios-text-color: ${fname};
+    -ios-tab-text-color: ${fname};
+    -ios-tab-highlighted-text-color: ${fname};
+}
+
+MainViewStyle-Primary
+{
+    background-color: ${fbg};
+    -ios-background-image: '${img('mainbg')}';
+    -ios-text-color: ${fname};
+    -ios-highlighted-text-color: ${fname};
+    -ios-description-text-color: ${fname};
+    -ios-description-highlighted-text-color: ${fname};
+    -ios-paragraph-text-color: ${fname};
+    -ios-paragraph-highlighted-text-color: ${fname};
+    -ios-normal-background-color: ${fbg};
+    -ios-normal-background-alpha: 0.0;
+    -ios-selected-background-color: ${fbg};
+    -ios-selected-background-alpha: 0.05;
+}
+
+MainViewStyle-Secondary
+{
+    background-color: ${fbg};
+}
+
+SectionTitleStyle-Main
+{
+    border-color: ${fname};
+    border-alpha: 0.09;
+    -ios-text-color: ${fname};
+    -ios-text-alpha: 1.0;
+}
+
+
+/*
+ Feature Style
+ */
+
+FeatureStyle-Primary
+{
+    -ios-text-color: ${fname};
+}
+
+ButtonStyle-AddFriend
+{
+    -ios-image: '${img('addfriend')}';
+}
+
+
+/*
+ DefaultProfile Style
+ */
+
+DefaultProfileStyle
+{
+    -ios-profile-images: '${img('prof')}';
+}
+
+
+/*
+ ChatRoom Style
+ */
+
+BackgroundStyle-ChatRoom
+{
+    background-color: ${chatbg};
+    -ios-background-image: '${img('chatbg')}';
+}
+
+InputBarStyle-Chat
+{
+    background-color: ${inbar};
+    -ios-send-normal-background-color: ${hdr};
+    -ios-send-normal-foreground-color: #FFFFFF;
+    -ios-send-highlighted-background-color: ${hdr};
+    -ios-send-highlighted-foreground-color: #FFFFFF;
+    -ios-button-normal-foreground-color: ${tico};
+    -ios-button-highlighted-foreground-color: ${tico};
+    -ios-button-text-color: ${intxt};
+    -ios-button-normal-background-color: #FFFFFF;
+    -ios-button-normal-background-alpha: 100;
+}
+
+
+/*
+ Message Style
+ */
+
+MessageCellStyle-Send
+{
+    -ios-background-image: '${img('bbl-s1')}' ${getBblInsetVal('bbl-s1','bg1') || '26 24'}px;
+    -ios-selected-background-image: '${img('bbl-s1sel')}' ${getBblInsetVal('bbl-s1','bg1') || '26 24'}px;
+    -ios-group-background-image: '${I['bbl-s2'] ? img('bbl-s2') : img('bbl-s1')}' ${getBblInsetVal('bbl-s2','bg2') || getBblInsetVal('bbl-s1','bg1') || '26 24'}px;
+    -ios-group-selected-background-image: '${I['bbl-s2sel'] ? img('bbl-s2sel') : (I['bbl-s2'] ? img('bbl-s2') : img('bbl-s1'))}' ${getBblInsetVal('bbl-s2','bg2') || getBblInsetVal('bbl-s1','bg1') || '26 24'}px;
+    -ios-title-edgeinsets: ${getBblInsetVal('bbl-s1','edge1') || '14px 20px 8px 26px'};
+    -ios-group-title-edgeinsets: ${getBblInsetVal('bbl-s2','edge2') || getBblInsetVal('bbl-s1','edge1') || '14px 20px 8px 26px'};
+    -ios-text-color: ${meTxt};
+    -ios-selected-text-color: ${meTxt};
+    -ios-unread-text-color: ${unread};
+}
+
+MessageCellStyle-Receive
+{
+    -ios-background-image: '${img('bbl-r1')}' ${getBblInsetVal('bbl-r1','bg1') || '29 24'}px;
+    -ios-selected-background-image: '${img('bbl-r1sel')}' ${getBblInsetVal('bbl-r1','bg1') || '29 24'}px;
+    -ios-group-background-image: '${I['bbl-r2'] ? img('bbl-r2') : img('bbl-r1')}' ${getBblInsetVal('bbl-r2','bg2') || getBblInsetVal('bbl-r1','bg1') || '29 24'}px;
+    -ios-group-selected-background-image: '${I['bbl-r2sel'] ? img('bbl-r2sel') : (I['bbl-r2'] ? img('bbl-r2') : img('bbl-r1'))}' ${getBblInsetVal('bbl-r2','bg2') || getBblInsetVal('bbl-r1','bg1') || '29 24'}px;
+    -ios-title-edgeinsets: ${getBblInsetVal('bbl-r1','edge1') || '14px 23px 8px 20px'};
+    -ios-group-title-edgeinsets: ${getBblInsetVal('bbl-r2','edge2') || getBblInsetVal('bbl-r1','edge1') || '14px 23px 8px 20px'};
+    -ios-text-color: ${thTxt};
+    -ios-selected-text-color: ${thTxt};
+    -ios-unread-text-color: ${unread};
+}
+
+
+/*
+ Passcode Style
+ */
+
+BackgroundStyle-Passcode
+{
+    background-color: ${lock};
+    -ios-background-image: '${img('lockbg')}';
+}
+
+LabelStyle-PasscodeTitle
+{
+    -ios-text-color: ${locktxt};
+}
+
+PasscodeStyle
+{
+    -ios-bullet-first-image: '${img('pin1off')}';
+    -ios-bullet-second-image: '${img('pin2off')}';
+    -ios-bullet-third-image: '${img('pin3off')}';
+    -ios-bullet-fourth-image: '${img('pin4off')}';
+    -ios-bullet-selected-first-image: '${img('pin1on')}';
+    -ios-bullet-selected-second-image: '${img('pin2on')}';
+    -ios-bullet-selected-third-image: '${img('pin3on')}';
+    -ios-bullet-selected-fourth-image: '${img('pin4on')}';
+    -ios-keypad-background-color: ${kpbg};
+    -ios-keypad-text-normal-color: ${kptxt};
+    -ios-keypad-number-highlighted-image: '${img('keypad')}';
+}
+
+
+/*
+ Message Notification Bar Style
+ */
+
+BackgroundStyle-MessageNotificationBar
+{
+    background-color: ${notif};
+}
+
+LabelStyle-MessageNotificationBarName
+{
+    -ios-text-color: ${notifName};
+}
+
+LabelStyle-MessageNotificationBarMessage
+{
+    -ios-text-color: ${notifMsg};
+}
+
+
+/*
+ Direct Share
+ */
+
+BackgroundStyle-DirectShareBar
+{
+    background-color: ${share};
+}
+
+LabelStyle-DirectShareBarName
+{
+    -ios-text-color: ${fname};
+}
+
+LabelStyle-DirectShareBarMessage
+{
+    -ios-text-color: ${fname};
+}
+
+
+/*
+ BottomBanner Style
+ */
+
+BottomBannerStyle {
+    background-color: ${banner};
+}
+`;
+}
+
+async function generate() {
+  if (typeof JSZip === 'undefined') { toast('JSZip 로딩 중...'); return; }
+  try {
+    const name = g('m-name') || 'MyTheme';
+    const zip = new JSZip();
+    const imgFolder = zip.folder('Images');
+
+    zip.file('KakaoTalkTheme.css', buildCSS());
+
+    // 파일명 맵
+    const TABFN = {};
+    TABICONS.forEach(t => { TABFN[t.k+'-off'] = t.fn[0]; TABFN[t.k+'-on'] = t.fn[1]; });
+    const FILEMAP = {
+      ...TABFN,
+      'chatbg':   'chatroomBgImage',
+      'bbl-s1':   'chatroomBubbleSend01',
+      'bbl-s1sel':'chatroomBubbleSend01Selected',
+      'bbl-s2':   'chatroomBubbleSend02',
+      'bbl-s2sel':'chatroomBubbleSend02Selected',
+      'bbl-r1':   'chatroomBubbleReceive01',
+      'bbl-r1sel':'chatroomBubbleReceive01Selected',
+      'bbl-r2':   'chatroomBubbleReceive02',
+      'bbl-r2sel':'chatroomBubbleReceive02Selected',
+      'tbar':     'maintabBgImage',
+      'prof':     'profileImg01',
+      'addfriend':'findBtnAddFriend',
+      'mainbg':   'mainBgImage',
+      'lockbg':   'passcodeBgImage',
+      'pin1off':  'passcodeImgCode01',
+      'pin2off':  'passcodeImgCode02',
+      'pin3off':  'passcodeImgCode03',
+      'pin4off':  'passcodeImgCode04',
+      'pin1on':   'passcodeImgCode01Selected',
+      'pin2on':   'passcodeImgCode02Selected',
+      'pin3on':   'passcodeImgCode03Selected',
+      'pin4on':   'passcodeImgCode04Selected',
+      'keypad':   'passcodeKeypadPressed',
+    };
+
+    for (const [key, fn] of Object.entries(FILEMAP)) {
+      if (!I[key]) continue;
+      const b64 = I[key].url.split(',')[1];
+      imgFolder.file(fn + '@2x.png', b64, { base64: true });
+      imgFolder.file(fn + '@3x.png', b64, { base64: true });
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const name_ = name + '.ktheme';
+
+    // base64로 변환해서 data URL로 열기 - 파일앱/Safari 모두 호환
+    const reader = new FileReader();
+    reader.onload = function() {
+      const dataUrl = reader.result;
+      // data URL을 새 탭으로 열면 iOS에서 파일 저장 가능
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = name_;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast('파일 앱 → 다운로드 폴더에서 확인하세요!');
+    };
+    reader.readAsDataURL(blob);
+  } catch(e) {
+    toast('오류: ' + e.message);
+    console.error(e);
+  }
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('on'), 2800);
+}
+
+buildTabIconUI();
+render();
+</script>
+</body>
+</html>
